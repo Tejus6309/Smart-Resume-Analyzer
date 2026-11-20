@@ -317,7 +317,7 @@ function MatchHistoryPage({ revision }) {
   }, [revision]);
 
   return <section>
-    <PageHeading title="Match history">Comparisons from this backend run, newest first. Times are in IST.</PageHeading>
+    <PageHeading title="Match history">Review your recent comparisons and matching scores.</PageHeading>
     <div className="panel history-list" aria-live="polite">
       {notice ? <Status notice={notice} /> : entries === null ? <p className="muted">Loading history…</p>
         : entries.length === 0 ? <p className="muted">No matches saved yet.</p>
