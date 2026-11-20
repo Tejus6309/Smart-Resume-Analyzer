@@ -33,7 +33,7 @@ async function start() {
     bundle: true,
     jsx: 'automatic',
     sourcemap: 'inline',
-    logLevel: 'info',
+    logLevel: 'silent',
   });
 
   try {
