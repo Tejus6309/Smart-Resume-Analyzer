@@ -23,9 +23,10 @@ public class LoginService {
 
     public String authenticate(String name, String password, boolean register) {
         String username = name.strip();
-        if (!username.matches("[a-z0-9_.-]{3,32}")) {
+
+        if (!username.matches("[a-zA-Z0-9_.-]{3,32}")) {
             throw new IllegalArgumentException("Use 3 to 32 letters, numbers, dots, underscores or hyphens.");
-        }
+}
         if (password.length() < 8 || password.length() > 128 || password.isBlank()) {
             throw new IllegalArgumentException("Use a password with 8 to 128 characters.");
         }
