@@ -35,7 +35,6 @@ public class WebMain {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", port), 0);
         server.createContext("/", app::handle);
         server.start();
-        System.out.println("Temporary mode: accounts, jobs, resumes and history clear on backend restart.");
         System.out.println("Open http://127.0.0.1:" + server.getAddress().getPort());
     }
 
