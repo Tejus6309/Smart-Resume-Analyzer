@@ -62,7 +62,7 @@ function Header({ username, page, onLogout, signingOut }) {
 }
 
 function SignIn({ onSuccess }) {
-  const [register, setRegister] = useState(false);
+  const [register, setRegister] = useState(true);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
 
