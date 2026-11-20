@@ -96,7 +96,7 @@ function SignIn({ onSuccess }) {
           <label htmlFor="password">Password</label>
           <input id="password" name="password" type="password" minLength={8} maxLength={128}
             autoComplete={register ? 'new-password' : 'current-password'} required />
-          {register && <p className="status">Use at least 8 characters. Accounts share this temporary workspace.</p>}
+          {register && <p className="status">Use at least 8 characters.</p>}
           <button className="primary" type="submit" disabled={busy}>
             {busy ? 'Please wait…' : register ? 'Create account' : 'Sign in'}
           </button>
