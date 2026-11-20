@@ -476,7 +476,7 @@ function App() {
     try {
       await request('/logout', new URLSearchParams());
       setUsername('');
-      setNotice({ message: 'Signed out.' });
+      setNotice(null);
     } catch (error) {
       setNotice({ message: error.message, error: true });
     } finally {
