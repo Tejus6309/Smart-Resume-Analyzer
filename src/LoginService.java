@@ -23,7 +23,7 @@ public class LoginService {
     }
 
     public String authenticate(String name, String password, boolean register) {
-        String username = name.strip().toLowerCase(Locale.ROOT);
+        String username = name.strip();
         if (!username.matches("[a-z0-9_.-]{3,32}")) {
             throw new IllegalArgumentException("Use 3 to 32 letters, numbers, dots, underscores or hyphens.");
         }
