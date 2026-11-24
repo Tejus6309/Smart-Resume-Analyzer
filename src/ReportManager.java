@@ -11,16 +11,20 @@ public class ReportManager {
         Path directory = Path.of("reports");
         Files.createDirectories(directory);
         Path file = directory.resolve("run_" + runId + "_resume_" + resumeId + "_match_report.txt");
-        return Files.writeString(file, formatReport(result.generateSummary()), StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        String report = formatReport(result.generateSummary());
+        try (var writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+            writer.write(report);
+        }
+        return file;
     }
 
     public Path exportStandalone(String summary) throws IOException {
         Path directory = Path.of("reports");
         Files.createDirectories(directory);
         Path file = Files.createTempFile(directory, "match_report_", ".txt");
-        try {
-            return Files.writeString(file, formatReport(summary), StandardCharsets.UTF_8);
+        try (var writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+            writer.write(formatReport(summary));
         } catch (IOException error) {
             try {
                 Files.deleteIfExists(file);
@@ -29,6 +33,7 @@ public class ReportManager {
             }
             throw error;
         }
+        return file;
     }
 
     private String formatReport(String summary) {

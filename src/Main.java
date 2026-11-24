@@ -94,7 +94,7 @@ public class Main {
     }
 
     private void loadResume() throws IOException {
-        ArrayList<Resume> savedResumes = store.getResumes(extractor);
+        ArrayList<Resume> savedResumes = store.getResumes();
         if (savedResumes.isEmpty()) {
             System.out.println("No saved resumes. Enter one using option 1.");
             return;
@@ -110,14 +110,13 @@ public class Main {
             System.out.println("Invalid resume ID. Enter a listed number.");
             return;
         }
-        for (Resume saved : savedResumes) {
-            if (saved.getResumeId() == id) {
-                selectResume(saved);
-                System.out.printf("Loaded resume #%d for %s.%n", id, saved.getCandidateName());
-                return;
-            }
+        Resume saved = store.findResume(id);
+        if (saved == null) {
+            System.out.println("Invalid resume ID. Enter a listed number.");
+            return;
         }
-        System.out.println("Invalid resume ID. Enter a listed number.");
+        selectResume(saved);
+        System.out.printf("Loaded resume #%d for %s.%n", id, saved.getCandidateName());
     }
 
     private void selectResume(Resume selected) {
@@ -190,17 +189,16 @@ public class Main {
             System.out.println("Invalid job ID. Enter a listed number.");
             return;
         }
-        for (Job job : jobs) {
-            if (job.getJobId() == jobId) {
-                MatchResult result = matcher.match(resume, job);
-                store.saveMatch(result);
-                lastMatch = result;
-                System.out.println(result.generateSummary());
-                System.out.println("Match saved to history.");
-                return;
-            }
+        Job job = store.findJob(jobId);
+        if (job == null) {
+            System.out.println("Invalid job ID. Enter a listed number.");
+            return;
         }
-        System.out.println("Invalid job ID. Enter a listed number.");
+        MatchResult result = matcher.match(resume, job);
+        store.saveMatch(result);
+        lastMatch = result;
+        System.out.println(result.generateSummary());
+        System.out.println("Match saved to history.");
     }
 
     private void rankJobs() throws IOException {
