@@ -20,6 +20,7 @@ async function request(path, body) {
 
 function Status({ notice, id }) {
   return <p id={id} className={notice?.error ? 'status error' : 'status'} aria-live="polite">
+    {notice?.busy && <span className="spinner" aria-hidden="true" />}
     {notice?.message}
   </p>;
 }
@@ -47,38 +48,58 @@ function Icon({ name, size = 20 }) {
     download: <><path d="M12 3v12M7 10l5 5 5-5M4 16v5h16v-5" /></>,
     logout: <><path d="M9 4H4v16h5M10 12h11M17 8l4 4-4 4" /></>,
     check: <path d="m5 12 4 4L19 6" />,
+    arrow: <path d="M4 12h15m-6-6 6 6-6 6" />,
+    upload: <><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4" /></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name] || paths.document}</svg>;
 }
 
+function Brand({ href }) {
+  return <a className="brand" href={href}>
+    <span className="brand-mark"><Icon name="briefcase" size={21} /></span>
+    <span>Resume Analyzer<small>&amp; Job Matcher</small></span>
+  </a>;
+}
+
 function Header({ username, page, onLogout, signingOut }) {
   return <header className={username ? 'topbar signed-in' : 'topbar'}>
     <div className="bar">
-      <a className="brand" href={username ? '#workspace' : '/'}>
-        <span className="brand-mark"><Icon name="briefcase" size={21} /></span>
-        <span>Resume Analyzer<small>&amp; Job Matcher</small></span>
-      </a>
+      <Brand href={username ? '#workspace' : '/'} />
       {username && <>
-        <p className="nav-caption">YOUR WORKSPACE</p>
         <nav className="page-nav" aria-label="Main navigation">
           {pages.map(([id, label]) => <a key={id} href={'#' + id}
             aria-current={page === id ? 'page' : undefined}>
             <Icon name={id} size={19} /><span>{label}</span>
           </a>)}
         </nav>
-        <div className="sidebar-note"><Icon name="document" size={19} /><p>One place for your resumes, jobs and comparisons.</p></div>
         <div className="account-controls">
           <span className="avatar" aria-hidden="true">{username.slice(0, 1).toUpperCase()}</span>
           <div className="account-details"><span className="account-name">{username}</span>
             <button className="account-button" type="button" onClick={onLogout} disabled={signingOut}>
-              <Icon name="logout" size={14} />Sign out
+              <Icon name="logout" size={15} />{signingOut ? 'Signing out…' : 'Sign out'}
             </button>
           </div>
         </div>
       </>}
     </div>
   </header>;
+}
+
+function PanelHeading({ icon, title }) {
+  return <div className="panel-heading">
+    <span className="panel-icon"><Icon name={icon} size={18} /></span>
+    <h2>{title}</h2>
+  </div>;
+}
+
+function EmptyState({ icon, title, children, action }) {
+  return <div className="empty">
+    <span className="empty-icon"><Icon name={icon} size={26} /></span>
+    <h3>{title}</h3>
+    <p>{children}</p>
+    {action}
+  </div>;
 }
 
 function SignIn({ onSuccess }) {
@@ -104,21 +125,18 @@ function SignIn({ onSuccess }) {
   return <main className="auth-page">
     <section className="auth-layout" aria-labelledby="auth-heading">
       <div className="auth-intro">
-        <span className="eyebrow">RESUME &amp; JOB TOOLS</span>
-        <h1>Resume Analyzer<br /><em>&amp; Job Matcher</em></h1>
-        <p>Understand how your skills line up with the jobs you want.</p>
+        <h1>See where your<br className="wide-break" /> skills <em>fit.</em></h1>
+        <p>Compare your resume with a job description to see what matches and where you can improve.</p>
         <div className="auth-features">
           <div><Icon name="document" /><p><strong>Bring your resume</strong><span>Upload a PDF or DOCX, or paste your text.</span></p></div>
           <div><Icon name="compare" /><p><strong>Compare the requirements</strong><span>See your score, matched skills and skill gaps.</span></p></div>
           <div><Icon name="history" /><p><strong>Keep track of your comparisons</strong><span>Review history and export readable reports.</span></p></div>
         </div>
-        <span className="auth-formats">PDF <span>·</span> DOCX <span>·</span> Plain text</span>
       </div>
       <div className="auth-form-area">
         <form className="auth-panel" onSubmit={submit} key={register ? 'register' : 'login'}>
-          <span className="eyebrow">GET STARTED</span>
           <h2 id="auth-heading">{register ? 'Create an account' : 'Welcome back'}</h2>
-          <p className="auth-description">{register ? 'Set up your account to open the workspace.' : 'Sign in to continue to your workspace.'}</p>
+          <p className="auth-description">{register ? 'Create a local account to start comparing resumes.' : 'Sign in to continue to your workspace.'}</p>
           <label htmlFor="username">Username</label>
           <input id="username" name="username" autoComplete="username" minLength={3} maxLength={32} required />
           <label htmlFor="password">Password</label>
@@ -127,27 +145,29 @@ function SignIn({ onSuccess }) {
           {register && <p className="status">Use at least 8 characters.</p>}
           <button className="primary" type="submit" disabled={busy}>
             {busy ? 'Please wait…' : register ? 'Create account' : 'Sign in'}
+            {!busy && <Icon name="arrow" size={17} />}
           </button>
           <Status notice={notice} />
           <button type="button" className="account-switch" disabled={busy} onClick={() => {
             setRegister(!register);
             setNotice(null);
           }}>{register ? 'Already registered? Sign in' : 'New here? Create an account'}</button>
+          <p className="auth-note">Accounts and workspace data reset when the local server stops.</p>
         </form>
       </div>
     </section>
   </main>;
 }
 
-function PageHeading({ title, children }) {
+function PageHeading({ title, children, action }) {
   return <header className="page-heading">
-    <h1>{title}</h1>
-    <p>{children}</p>
+    <div><h1>{title}</h1><p>{children}</p></div>
+    {action}
   </header>;
 }
 
 function ResumeUpload({ loading, disabled, onLoading, onText }) {
-  const [notice, setNotice] = useState({ message: 'Drop a file here or browse · up to 5 MB' });
+  const [notice, setNotice] = useState(null);
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef(null);
 
@@ -160,7 +180,7 @@ function ResumeUpload({ loading, disabled, onLoading, onText }) {
       return;
     }
     onLoading(true);
-    setNotice({ message: 'Reading ' + file.name + '…' });
+    setNotice({ message: 'Reading ' + file.name + '…', busy: true });
     try {
       onText(await request('/extract?' + extension, file));
       setNotice({ message: 'Text extracted from ' + file.name + '. Review it below.' });
@@ -183,9 +203,12 @@ function ResumeUpload({ loading, disabled, onLoading, onText }) {
         upload(event.dataTransfer.files[0]);
       }
     }}>
-    <label htmlFor="resume-file"><Icon name="document" size={16} /> Upload PDF or DOCX</label>
-    <input id="resume-file" ref={fileInput} type="file" accept=".pdf,.docx" disabled={loading}
-      aria-describedby="upload-status" onChange={event => upload(event.target.files[0])} />
+    <label htmlFor="resume-file" className="upload-target">
+      <span className="panel-icon"><Icon name="upload" size={18} /></span>
+      <span><strong>Choose a file or drop it here</strong><small id="upload-hint">PDF or DOCX · up to 5 MB</small></span>
+    </label>
+    <input id="resume-file" ref={fileInput} type="file" accept=".pdf,.docx" disabled={loading || disabled}
+      aria-describedby="upload-hint upload-status" onChange={event => upload(event.target.files[0])} />
     <Status id="upload-status" notice={notice} />
   </div>;
 }
@@ -218,30 +241,32 @@ function AddJobPage({ jobs, onJobSaved }) {
     <PageHeading title="Add a job">Save a job description or list the skills you want to compare.</PageHeading>
     <div className="jobs-layout">
       <form className="panel" onSubmit={save}>
+        <PanelHeading icon="jobs" title="Job details" />
         <div className="job-fields">
           <div>
             <label htmlFor="job-title">Job title</label>
-            <input id="job-title" name="title" maxLength={120} required />
+            <input id="job-title" name="title" maxLength={120} placeholder="e.g. Frontend Developer" required />
           </div>
           <div>
             <label htmlFor="company">Company</label>
-            <input id="company" name="company" maxLength={120} required />
+            <input id="company" name="company" maxLength={120} placeholder="Company name" required />
           </div>
         </div>
         <label htmlFor="description">Job description or required skills</label>
-        <textarea id="description" name="description" rows={6} maxLength={20000} required />
+        <textarea id="description" name="description" rows={7} maxLength={20000}
+          placeholder="Paste the job description or enter the skills it requires." required />
         <div className="job-actions">
-          <button className="primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save job'}</button>
+          <button className="primary" type="submit" disabled={saving}><Icon name="jobs" size={17} />{saving ? 'Saving…' : 'Save job'}</button>
           <a className="page-link" href="#workspace">Back to workspace</a>
         </div>
         <Status notice={notice} />
       </form>
       <aside className="panel saved-jobs" aria-label="Saved jobs">
-        <h2>Saved jobs</h2>
+        <PanelHeading icon="briefcase" title="Saved jobs" />
         {jobs.length ? <ul>{jobs.map(job => <li key={job.id}>
           <span className="job-icon"><Icon name="briefcase" /></span>
           <div><strong>{job.title}</strong><p>{job.company}</p></div>
-        </li>)}</ul> : <p className="muted">Your saved jobs will appear here.</p>}
+        </li>)}</ul> : <EmptyState icon="briefcase" title="No saved jobs yet">Jobs you save appear here and in the comparison menu.</EmptyState>}
       </aside>
     </div>
   </section>;
@@ -306,19 +331,17 @@ function MatchCard({ match, resumeId }) {
 
 function Results({ data, revision, resultRef }) {
   return <section className="panel results" aria-label="Match results" aria-live="polite" ref={resultRef}>
-    <div className="panel-heading"><Icon name="compare" size={19} /><h2>Match results</h2></div>
+    <PanelHeading icon="compare" title="Match results" />
     {data ? <>
       <div className="results-head">
-        <p>{data.name}{data.resumeId > 0 && ' · Saved resume #' + data.resumeId}</p>
+        <div><h3>{data.name}</h3>{data.resumeId > 0 && <p>Saved resume #{data.resumeId}</p>}</div>
+        <span className="count-label">{data.matches.length} {data.matches.length === 1 ? 'match' : 'matches'}</span>
       </div>
       <div className="detected"><h3>Skills found in resume</h3><Tags skills={data.skills} /></div>
       {data.matches.map(match => <MatchCard key={revision + ':' + match.jobId} match={match} resumeId={data.resumeId} />)}
-    </> : <div className="empty">
-      <span className="empty-icon"><Icon name="compare" size={28} /></span>
-      <h3>Ready when you are</h3>
-      <p>Choose a resume and a job, then compare to see how your skills line up.</p>
-      <div className="empty-legend"><span>Matching skills</span><span>Skill gaps</span></div>
-    </div>}
+    </> : <EmptyState icon="compare" title="No comparison yet">
+      Choose a resume and a job to see your score, matched skills, and skill gaps.
+    </EmptyState>}
   </section>;
 }
 
@@ -342,8 +365,12 @@ function MatchHistoryPage({ revision }) {
   return <section>
     <PageHeading title="Match history">Review your recent comparisons and matching scores.</PageHeading>
     <div className="panel history-list" aria-live="polite">
-      {notice ? <Status notice={notice} /> : entries === null ? <p className="muted">Loading history…</p>
-        : entries.length === 0 ? <p className="muted">No matches saved yet.</p>
+      <PanelHeading icon="history" title="Recent comparisons" />
+      {notice ? <Status notice={notice} /> : entries === null ? <Status notice={{ message: 'Loading history…', busy: true }} />
+        : entries.length === 0 ? <EmptyState icon="history" title="No comparisons saved yet"
+          action={<a className="secondary" href="#workspace">Compare a resume <Icon name="arrow" size={16} /></a>}>
+          Your comparisons appear here after you run a match.
+        </EmptyState>
           : entries.map(entry => <article className="history-entry" key={entry}>
             <span className="history-icon"><Icon name="history" /></span>
             <div><p className="history-summary">{entry.split('\n')[0]}</p>
@@ -361,7 +388,7 @@ function Workspace({ username, onLogout, signingOut }) {
   const [saveResume, setSaveResume] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState({ message: 'Loading saved jobs and resumes…' });
+  const [notice, setNotice] = useState({ message: 'Loading saved jobs and resumes…', busy: true });
   const [data, setData] = useState(null);
   const [revision, setRevision] = useState(0);
   const [page, setPage] = useState(currentPage);
@@ -388,12 +415,18 @@ function Workspace({ username, onLogout, signingOut }) {
     return () => window.removeEventListener('hashchange', navigate);
   }, []);
 
+  useEffect(() => {
+    if (revision && window.matchMedia('(max-width: 760px)').matches) {
+      resultRef.current?.scrollIntoView({ block: 'start' });
+    }
+  }, [revision]);
+
   async function compare(event) {
     event.preventDefault();
     if (!workspace || busy || uploading) return;
     const form = new URLSearchParams(new FormData(event.currentTarget));
     setBusy(true);
-    setNotice({ message: 'Comparing skills…' });
+    setNotice({ message: 'Comparing skills…', busy: true });
     try {
       const result = await request('/match', form);
       setData(result);
@@ -409,9 +442,6 @@ function Workspace({ username, onLogout, signingOut }) {
           setNotice({ message: 'Match and resume saved. Reload the page to refresh the saved list.', error: true });
         }
       }
-      if (window.matchMedia('(max-width: 760px)').matches) {
-        resultRef.current?.scrollIntoView({ block: 'start' });
-      }
     } catch (error) {
       setNotice({ message: error.message, error: true });
     } finally {
@@ -423,16 +453,14 @@ function Workspace({ username, onLogout, signingOut }) {
     <Header username={username} page={page}
       onLogout={onLogout} signingOut={signingOut} />
     <main className="layout app-main">
-      <div className="context-bar"><span>Resume &amp; job tools <span className="context-separator">/</span> {pages.find(([id]) => id === page)?.[1]}</span>
-        {workspace && <span className="job-count">{workspace.jobs.length} {workspace.jobs.length === 1 ? 'job' : 'jobs'} available</span>}
-      </div>
       <div hidden={page !== 'workspace'}>
-        <PageHeading title="Compare your resume">
+        <PageHeading title="Compare your resume"
+          action={<a className="secondary" href="#jobs"><Icon name="jobs" size={17} /> Add a job</a>}>
           Upload your resume or paste its text to find matching jobs and discover missing skills.
         </PageHeading>
         <section aria-label="Matching workspace" className="workspace">
           <form className="panel" onSubmit={compare}>
-            <div className="panel-heading"><Icon name="document" size={19} /><h2>Your resume</h2></div>
+            <PanelHeading icon="document" title="Comparison setup" />
             <div className="compare-fields">
               <div>
                 <label htmlFor="saved">Resume to use</label>
@@ -452,14 +480,11 @@ function Workspace({ username, onLogout, signingOut }) {
                 </select>
               </div>
             </div>
+            {workspace?.jobs.length === 0 && <p className="inline-hint">Add a job to run your first comparison.</p>}
             <fieldset hidden={Boolean(saved)} disabled={Boolean(saved) || busy}>
-              <div className="compare-fields resume-inputs">
-                <div>
-                  <label htmlFor="name">Candidate name</label>
-                  <input id="name" name="name" maxLength={120} placeholder="e.g. Ananya Rao" required />
-                </div>
-                <ResumeUpload loading={uploading} disabled={Boolean(saved) || busy} onLoading={setUploading} onText={setText} />
-              </div>
+              <label htmlFor="name">Candidate name</label>
+              <input id="name" name="name" maxLength={120} placeholder="e.g. Ananya Rao" required />
+              <ResumeUpload loading={uploading} disabled={Boolean(saved) || busy} onLoading={setUploading} onText={setText} />
               <label htmlFor="resume">Resume text</label>
               <textarea id="resume" name="resume" rows={3} maxLength={100000}
                 placeholder="Extracted text appears here. You can also paste it directly."
@@ -469,7 +494,7 @@ function Workspace({ username, onLogout, signingOut }) {
                   onChange={event => setSaveResume(event.target.checked)} /> Keep this resume for this run
               </label>
             </fieldset>
-            <button className="primary" type="submit" disabled={!workspace || busy || uploading}>
+            <button className="primary" type="submit" disabled={!workspace?.jobs.length || busy || uploading}>
               <Icon name="compare" size={18} />Compare resume
             </button>
             <Status notice={notice} />
@@ -479,6 +504,7 @@ function Workspace({ username, onLogout, signingOut }) {
       </div>
       {page === 'jobs' && <AddJobPage jobs={workspace?.jobs ?? []} onJobSaved={refreshWorkspace} />}
       {page === 'history' && <MatchHistoryPage revision={revision} />}
+      <footer className="app-footer">Workspace data is temporary. Export reports you want to keep.</footer>
     </main>
   </>;
 }
@@ -523,7 +549,7 @@ function App() {
   return <>
     <Header />
     {notice && <div className="layout"><Status notice={notice} /></div>}
-    {username === null ? <div className="layout"><Status notice={{ message: 'Checking your session…' }} /></div>
+    {username === null ? <div className="layout session-status"><Status notice={{ message: 'Checking your session…', busy: true }} /></div>
       : <SignIn onSuccess={name => { setNotice(null); setUsername(name); }} />}
   </>;
 }
