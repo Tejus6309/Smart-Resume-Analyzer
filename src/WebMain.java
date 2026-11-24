@@ -73,7 +73,7 @@ public class WebMain {
                     return;
                 }
                 boolean asset = method.equals("GET")
-                        && List.of("/", "/style.css", "/app.js").contains(path);
+                        && List.of("/", "/style.css", "/app.js", "/react-runtime.js").contains(path);
                 if (!asset && login.currentUser(exchange).isEmpty()) {
                     send(exchange, 401, "text/plain", "Sign in to use the workspace.");
                     return;
@@ -83,8 +83,8 @@ public class WebMain {
                         case "/" -> send(exchange, 200, "text/html", page);
                         case "/style.css" -> send(exchange, 200, "text/css",
                                 Files.readString(webDirectory.resolve("style.css")));
-                        case "/app.js" -> send(exchange, 200, "text/javascript",
-                                Files.readString(webDirectory.resolve("app.js")));
+                        case "/app.js", "/react-runtime.js" -> send(exchange, 200, "text/javascript",
+                                Files.readString(webDirectory.resolve(path.substring(1))));
                         case "/workspace" -> send(exchange, 200, "application/json", workspace());
                         case "/history" -> send(exchange, 200, "application/json", json(store.getMatchHistory()));
                         default -> send(exchange, 404, "text/plain", "Page not found.");
@@ -118,7 +118,7 @@ public class WebMain {
 
     private String workspace() {
         var resumes = new ArrayList<Map<String, Object>>();
-        for (Resume resume : store.getResumes(extractor)) {
+        for (Resume resume : store.getResumes()) {
             resumes.add(Map.of("id", resume.getResumeId(), "name", resume.getCandidateName()));
         }
         var jobs = new ArrayList<Map<String, Object>>();
@@ -164,12 +164,7 @@ public class WebMain {
         String jobId = form.getOrDefault("job", "");
         Job selectedJob = null;
         if (!jobId.isEmpty()) {
-            for (Job job : jobs) {
-                if (Integer.toString(job.getJobId()).equals(jobId)) {
-                    selectedJob = job;
-                    break;
-                }
-            }
+            selectedJob = store.findJob(savedId(jobId));
             if (selectedJob == null) {
                 throw new IllegalArgumentException("Choose a saved job.");
             }
@@ -187,12 +182,11 @@ public class WebMain {
     private Resume selectResume(Map<String, String> form) {
         String saved = form.getOrDefault("saved", "");
         if (!saved.isEmpty()) {
-            for (Resume resume : store.getResumes(extractor)) {
-                if (Integer.toString(resume.getResumeId()).equals(saved)) {
-                    return resume;
-                }
+            Resume resume = store.findResume(savedId(saved));
+            if (resume == null) {
+                throw new IllegalArgumentException("Choose a saved resume.");
             }
-            throw new IllegalArgumentException("Choose a saved resume.");
+            return resume;
         }
         String name = required(form, "name", "Candidate name", 120);
         String text = required(form, "resume", "Resume text", 100_000);
@@ -210,12 +204,21 @@ public class WebMain {
         required(form, "saved", "Saved resume ID", 12);
         String id = required(form, "job", "Job ID", 12);
         Resume resume = selectResume(form);
-        for (Job job : store.getJobs()) {
-            if (Integer.toString(job.getJobId()).equals(id)) {
-                return "Added to " + reports.export(matcher.match(resume, job), resume.getResumeId());
-            }
+        Job job = store.findJob(savedId(id));
+        if (job == null) {
+            throw new IllegalArgumentException("Choose a saved job.");
         }
-        throw new IllegalArgumentException("Choose a saved job.");
+        return "Added to " + reports.export(matcher.match(resume, job), resume.getResumeId());
+    }
+
+    private int savedId(String value) {
+        try {
+            int id = Integer.parseInt(value);
+            // Web requests use the exact decimal IDs shown in the saved lists.
+            return Integer.toString(id).equals(value) ? id : 0;
+        } catch (NumberFormatException error) {
+            return 0;
+        }
     }
 
     private Map<String, Object> matchData(MatchResult result) {

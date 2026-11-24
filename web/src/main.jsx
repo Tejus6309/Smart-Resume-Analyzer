@@ -152,7 +152,6 @@ function SignIn({ onSuccess }) {
             setRegister(!register);
             setNotice(null);
           }}>{register ? 'Already registered? Sign in' : 'New here? Create an account'}</button>
-          <p className="auth-note">Accounts and workspace data reset when the local server stops.</p>
         </form>
       </div>
     </section>
@@ -504,7 +503,6 @@ function Workspace({ username, onLogout, signingOut }) {
       </div>
       {page === 'jobs' && <AddJobPage jobs={workspace?.jobs ?? []} onJobSaved={refreshWorkspace} />}
       {page === 'history' && <MatchHistoryPage revision={revision} />}
-      <footer className="app-footer">Workspace data is temporary. Export reports you want to keep.</footer>
     </main>
   </>;
 }
@@ -546,12 +544,12 @@ function App() {
       {notice && <div className="layout"><Status notice={notice} /></div>}
     </>;
   }
-  return <>
+  return <div className="auth-shell">
     <Header />
     {notice && <div className="layout"><Status notice={notice} /></div>}
     {username === null ? <div className="layout session-status"><Status notice={{ message: 'Checking your session…', busy: true }} /></div>
       : <SignIn onSuccess={name => { setNotice(null); setUsername(name); }} />}
-  </>;
+  </div>;
 }
 
 createRoot(document.getElementById('root')).render(<App />);

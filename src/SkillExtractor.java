@@ -1,9 +1,11 @@
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class SkillExtractor {
     private final HashMap<String, Pattern> dictionary = new HashMap<>();
@@ -24,13 +26,10 @@ public class SkillExtractor {
 
     public HashSet<String> extractSkills(String text) {
         String normalized = text.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
-        HashSet<String> found = new HashSet<>();
-        for (String skill : dictionary.keySet()) {
-            if (dictionary.get(skill).matcher(normalized).find()) {
-                found.add(skill);
-            }
-        }
-        return found;
+        return dictionary.entrySet().stream()
+                .filter(entry -> entry.getValue().matcher(normalized).find())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toCollection(HashSet::new));
     }
 
     public static String formatSkills(Set<String> skills) {

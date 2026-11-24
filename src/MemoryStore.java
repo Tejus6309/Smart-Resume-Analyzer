@@ -2,15 +2,18 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /** Temporary backend storage. Nothing in this class reads or writes a data file. */
 public class MemoryStore {
     private final Map<String, PasswordRecord> users = new HashMap<>();
-    private final ArrayList<Resume> resumes = new ArrayList<>();
-    private final ArrayList<Job> jobs = new ArrayList<>();
+    private final Map<Integer, Resume> resumes = new LinkedHashMap<>();
+    private final Map<Integer, Job> jobs = new LinkedHashMap<>();
     private final ArrayList<String> history = new ArrayList<>();
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
 
@@ -28,24 +31,34 @@ public class MemoryStore {
 
     public void saveResume(Resume resume) {
         resume.setResumeId(resumes.size() + 1);
-        resumes.add(copyResume(resume));
+        resumes.put(resume.getResumeId(), copyResume(resume));
     }
 
-    public ArrayList<Resume> getResumes(SkillExtractor extractor) {
-        ArrayList<Resume> copies = new ArrayList<>();
-        for (Resume resume : resumes) copies.add(copyResume(resume));
-        return copies;
+    public ArrayList<Resume> getResumes() {
+        return resumes.values().stream()
+                .map(this::copyResume)
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public Resume findResume(int id) {
+        Resume resume = resumes.get(id);
+        return resume == null ? null : copyResume(resume);
     }
 
     public void insertJob(Job job) {
         job.setJobId(jobs.size() + 1);
-        jobs.add(copyJob(job));
+        jobs.put(job.getJobId(), copyJob(job));
     }
 
     public ArrayList<Job> getJobs() {
-        ArrayList<Job> copies = new ArrayList<>();
-        for (Job job : jobs) copies.add(copyJob(job));
-        return copies;
+        return jobs.values().stream()
+                .map(this::copyJob)
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public Job findJob(int id) {
+        Job job = jobs.get(id);
+        return job == null ? null : copyJob(job);
     }
 
     public void saveMatch(MatchResult result) {
@@ -66,8 +79,8 @@ public class MemoryStore {
     }
 
     public ArrayList<String> getMatchHistory() {
-        ArrayList<String> newestFirst = new ArrayList<>();
-        for (int i = history.size() - 1; i >= 0; i--) newestFirst.add(history.get(i));
+        ArrayList<String> newestFirst = new ArrayList<>(history);
+        Collections.reverse(newestFirst);
         return newestFirst;
     }
 

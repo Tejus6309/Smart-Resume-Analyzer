@@ -59,7 +59,8 @@ try {
     const text = await response.text();
     return { status: response.status, text, data: response.headers.get('content-type')?.startsWith('application/json') ? JSON.parse(text) : null };
   }
-  check('React bundle served', (await api('/app.js')).status === 200);
+  check('Application module served', (await api('/app.js')).status === 200);
+  check('React runtime served', (await api('/react-runtime.js')).status === 200);
   check('Anonymous workspace rejected', (await api('/workspace')).status === 401);
   check('Short password rejected', (await api('/register', { username: 'tester', password: 'short' })).status === 400);
   const credentials = { username: 'tester', password: 'LocalTest123!' };
