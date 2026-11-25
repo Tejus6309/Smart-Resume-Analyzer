@@ -30,7 +30,7 @@ function looksLikeRole(value) {
   return value.length <= 120 && value.split(" ").length <= 10 && /^[\p{L}\p{N}][\p{L}\p{M}\p{N} .&+/#()'-]*$/u.test(value) && roleEnding.test(value);
 }
 function looksLikeCompany(value) {
-  return value.length <= 120 && value.split(" ").length <= 8 && /^\p{L}[\p{L}\p{M}\p{N} .&+''()-]*$/u.test(value) && !looksLikeRole(value) && !jobMetadata.test(value) && !jobSection.test(value);
+  return value.length <= 120 && value.split(" ").length <= 8 && /^\p{L}[\p{L}\p{M}\p{N} .&+'’()-]*$/u.test(value) && !looksLikeRole(value) && !jobMetadata.test(value) && !jobSection.test(value);
 }
 function detectJobDetails(text) {
   const lines = openingLines(text, /^(?:job description|job posting|job opening|vacancy)\s*:?$/i, jobSection);
@@ -38,14 +38,14 @@ function detectJobDetails(text) {
   let company = labeledValue(lines, /^(?:company(?: name)?|employer|organi[sz]ation(?: name)?)\s*:\s*(.+)$/i);
   for (const [index, line] of lines.slice(0, 4).entries()) {
     const atCompany = line.match(/^(.+?)\s+at\s+(.+)$/i);
-    const [role, employer, ...inlineMetadata] = line.split(/\s+[\/|�---]\s+/);
+    const [role, employer, ...inlineMetadata] = line.split(/\s+[\/|·–—-]\s+/);
     const roleValue = atCompany?.[1] ?? role;
     if (!looksLikeRole(roleValue)) continue;
     title ||= roleValue;
     const nextLine = lines[index + 1] || "";
     const previousLine = lines[index - 1] || "";
-    const [nextEmployer, ...metadata] = nextLine.split(/\s+[\/|�---]\s+/);
-    const inlineCompany = atCompany?.[2].split(/\s+[\/|�---]\s+/)[0] ?? employer;
+    const [nextEmployer, ...metadata] = nextLine.split(/\s+[\/|·–—-]\s+/);
+    const inlineCompany = atCompany?.[2].split(/\s+[\/|·–—-]\s+/)[0] ?? employer;
     if (!company && inlineCompany && looksLikeCompany(inlineCompany) && (atCompany || companyEnding.test(inlineCompany) || inlineMetadata.some((part) => jobMetadata.test(part)))) {
       company = inlineCompany;
     } else if (!company && looksLikeCompany(nextEmployer) && (companyEnding.test(nextEmployer) || metadata.some((part) => jobMetadata.test(part)))) {
@@ -58,14 +58,14 @@ function detectJobDetails(text) {
   return { title, company };
 }
 function looksLikeName(value) {
-  return value.length <= 120 && value.split(" ").length <= 6 && /^\p{L}[\p{L}\p{M}''.-]*(?: \p{L}[\p{L}\p{M}''.-]*)*$/u.test(value) && !resumeSection.test(value) && !looksLikeRole(value) && !companyEnding.test(value);
+  return value.length <= 120 && value.split(" ").length <= 6 && /^\p{L}[\p{L}\p{M}'’.-]*(?: \p{L}[\p{L}\p{M}'’.-]*)*$/u.test(value) && !resumeSection.test(value) && !looksLikeRole(value) && !companyEnding.test(value);
 }
 function detectCandidateName(text) {
-  const lines = openingLines(text, /^(?:r[e�]sum[e�]|cv|curriculum vitae)\s*:?$/i, resumeSection);
+  const lines = openingLines(text, /^(?:r[eé]sum[eé]|cv|curriculum vitae)\s*:?$/i, resumeSection);
   const labeled = labeledValue(lines, /^(?:(?:candidate|full|applicant) )?name\s*:\s*(.+)$/i);
   if (labeled && looksLikeName(labeled)) return labeled;
   const [first = "", ...following] = lines;
-  const [name, ...inlineDetails] = first.split(/\s+[\/|�]\s+/);
+  const [name, ...inlineDetails] = first.split(/\s+[\/|·]\s+/);
   const hasContact = [...inlineDetails, ...following.slice(0, 3)].some((line) => contact.test(line));
   if (looksLikeName(name) && (hasContact || !inlineDetails.length && looksLikeRole(following[0] || ""))) {
     return name;

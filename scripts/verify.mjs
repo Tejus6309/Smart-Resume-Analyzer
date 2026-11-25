@@ -60,7 +60,7 @@ try {
     company: '',
   });
   assert.equal(detectCandidateName('RESUME\n\nRen\nFrontend Developer / Pune / ren@example.com\nProfile'), 'Ren');
-  assert.equal(detectCandidateName('Candidate name: �lodie O'Neil\nSkills\nReact'), '�lodie O'Neil');
+  assert.equal(detectCandidateName('Candidate name: Élodie O’Neil\nSkills\nReact'), 'Élodie O’Neil');
   assert.equal(detectCandidateName('Frontend Developer\ncontact@example.com\nExperience\nAnother Person'), '');
   check('Upload details use document headers and keep uncertain fields empty', true);
 

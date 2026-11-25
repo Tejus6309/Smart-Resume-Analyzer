@@ -78,7 +78,7 @@ function Header({ username, page, onLogout, signingOut }) {
           <span className="avatar" aria-hidden="true">{username.slice(0, 1).toUpperCase()}</span>
           <div className="account-details"><span className="account-name">{username}</span>
             <button className="account-button" type="button" onClick={onLogout} disabled={signingOut}>
-              <Icon name="logout" size={15} />{signingOut ? 'Signing out.' : 'Sign out'}
+              <Icon name="logout" size={15} />{signingOut ? 'Signing out…' : 'Sign out'}
             </button>
           </div>
         </div>
@@ -145,7 +145,7 @@ function SignIn({ onSuccess }) {
             autoComplete={register ? 'new-password' : 'current-password'} required />
           {register && <p className="status">Use at least 8 characters.</p>}
           <button className="primary" type="submit" disabled={busy}>
-            {busy ? 'Please wait.' : register ? 'Create account' : 'Sign in'}
+            {busy ? 'Please wait…' : register ? 'Create account' : 'Sign in'}
             {!busy && <Icon name="arrow" size={17} />}
           </button>
           <Status notice={notice} />
@@ -180,7 +180,7 @@ function DocumentUpload({ id, loading, disabled, onLoading, onText }) {
       return;
     }
     onLoading(true);
-    setNotice({ message: 'Reading ' + file.name + '.', busy: true });
+    setNotice({ message: 'Reading ' + file.name + '…', busy: true });
     try {
       onText(await request('/extract?' + extension, file));
       setNotice({ message: 'Imported ' + file.name + '. Review the fields before continuing.' });
@@ -205,7 +205,7 @@ function DocumentUpload({ id, loading, disabled, onLoading, onText }) {
     }}>
     <label htmlFor={id} className="upload-target">
       <span className="panel-icon"><Icon name="upload" size={18} /></span>
-      <span><strong>Choose a file or drop it here</strong><small id={id + '-hint'}>PDF or DOCX � up to 5 MB</small></span>
+      <span><strong>Choose a file or drop it here</strong><small id={id + '-hint'}>PDF or DOCX · up to 5 MB</small></span>
     </label>
     <input id={id} ref={fileInput} type="file" accept=".pdf,.docx" disabled={loading || disabled}
       aria-describedby={id + '-hint ' + id + '-status'} onChange={event => upload(event.target.files[0])} />
@@ -285,7 +285,7 @@ function AddJobPage({ jobs, onJobSaved }) {
           placeholder="Paste the job description or enter the skills it requires." required />
         {tooLong && <Status notice={{ message: 'Shorten the job description to 20,000 characters before saving.', error: true }} />}
         <div className="job-actions">
-          <button className="primary" type="submit" disabled={saving || uploading || tooLong}><Icon name="jobs" size={17} />{saving ? 'Saving.' : 'Save job'}</button>
+          <button className="primary" type="submit" disabled={saving || uploading || tooLong}><Icon name="jobs" size={17} />{saving ? 'Saving…' : 'Save job'}</button>
           <a className="page-link" href="#workspace">Back to workspace</a>
         </div>
         <Status notice={notice} />
@@ -395,7 +395,7 @@ function MatchHistoryPage({ revision }) {
     <PageHeading title="Match history">Review your recent comparisons and matching scores.</PageHeading>
     <div className="panel history-list" aria-live="polite">
       <PanelHeading icon="history" title="Recent comparisons" />
-      {notice ? <Status notice={notice} /> : entries === null ? <Status notice={{ message: 'Loading history.', busy: true }} />
+      {notice ? <Status notice={notice} /> : entries === null ? <Status notice={{ message: 'Loading history…', busy: true }} />
         : entries.length === 0 ? <EmptyState icon="history" title="No comparisons saved yet"
           action={<a className="secondary" href="#workspace">Compare a resume <Icon name="arrow" size={16} /></a>}>
           Your comparisons appear here after you run a match.
@@ -419,7 +419,7 @@ function Workspace({ username, onLogout, signingOut }) {
   const [saveResume, setSaveResume] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState({ message: 'Loading saved jobs and resumes.', busy: true });
+  const [notice, setNotice] = useState({ message: 'Loading saved jobs and resumes…', busy: true });
   const [data, setData] = useState(null);
   const [revision, setRevision] = useState(0);
   const [page, setPage] = useState(currentPage);
@@ -463,7 +463,7 @@ function Workspace({ username, onLogout, signingOut }) {
     if (!workspace || busy || uploading) return;
     const form = new URLSearchParams(new FormData(event.currentTarget));
     setBusy(true);
-    setNotice({ message: 'Comparing skills.', busy: true });
+    setNotice({ message: 'Comparing skills…', busy: true });
     try {
       const result = await request('/match', form);
       setData(result);
@@ -505,7 +505,7 @@ function Workspace({ username, onLogout, signingOut }) {
                   onChange={event => setSaved(event.target.value)}>
                   <option value="">New resume</option>
                   {workspace?.resumes.map(resume =>
-                    <option value={resume.id} key={resume.id}>{resume.name} � #{resume.id}</option>)}
+                    <option value={resume.id} key={resume.id}>{resume.name} · #{resume.id}</option>)}
                 </select>
               </div>
               <div>
@@ -513,7 +513,7 @@ function Workspace({ username, onLogout, signingOut }) {
                 <select id="job" name="job" value={job} onChange={event => setJob(event.target.value)} disabled={busy}>
                   <option value="">Rank all saved jobs</option>
                   {workspace?.jobs.map(item =>
-                    <option value={item.id} key={item.id}>{item.title} � {item.company}</option>)}
+                    <option value={item.id} key={item.id}>{item.title} · {item.company}</option>)}
                 </select>
               </div>
             </div>
@@ -586,7 +586,7 @@ function App() {
   return <div className="auth-shell">
     <Header />
     {notice && <div className="layout"><Status notice={notice} /></div>}
-    {username === null ? <div className="layout session-status"><Status notice={{ message: 'Checking your session.', busy: true }} /></div>
+    {username === null ? <div className="layout session-status"><Status notice={{ message: 'Checking your session…', busy: true }} /></div>
       : <SignIn onSuccess={name => { setNotice(null); setUsername(name); }} />}
   </div>;
 }
