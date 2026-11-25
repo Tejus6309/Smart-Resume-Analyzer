@@ -344,6 +344,7 @@ function MatchCard({ match, resumeId }) {
     {match.progress >= 0 && <progress max={100} value={match.progress} aria-label="Match percentage" />}
     <p className="calculation">{match.progress < 0 ? 'No recognizable required skills.'
       : match.matched.length + ' of ' + match.requiredCount + ' required skills matched'}</p>
+    <p className="calculation"><strong>Application suggestion</strong> {match.recommendation}</p>
     <div className="skill-groups">
       <div><h4>Matched skills</h4><Tags skills={match.matched} variant="matched" /></div>
       <div><h4>Missing skills</h4><Tags skills={match.missing} variant="missing" /></div>
@@ -461,6 +462,10 @@ function Workspace({ username, onLogout, signingOut }) {
   async function compare(event) {
     event.preventDefault();
     if (!workspace || busy || uploading) return;
+    if (workspace.jobs.length === 0) {
+      setNotice({ message: 'Add a job before comparing your resume.', error: true });
+      return;
+    }
     const form = new URLSearchParams(new FormData(event.currentTarget));
     setBusy(true);
     setNotice({ message: 'Comparing skills…', busy: true });
@@ -517,7 +522,9 @@ function Workspace({ username, onLogout, signingOut }) {
                 </select>
               </div>
             </div>
-            {workspace?.jobs.length === 0 && <p className="inline-hint">Add a job to run your first comparison.</p>}
+            {workspace?.jobs.length === 0 && <p className="inline-hint">
+              <a href="#jobs">Add a job</a> to run your first comparison.
+            </p>}
             <fieldset hidden={Boolean(saved)} disabled={Boolean(saved) || busy}>
               <label htmlFor="name">Candidate name</label>
               <input id="name" name="name" maxLength={120} placeholder="e.g. Ananya Rao" required
@@ -532,7 +539,8 @@ function Workspace({ username, onLogout, signingOut }) {
                   onChange={event => setSaveResume(event.target.checked)} /> Keep this resume for this run
               </label>
             </fieldset>
-            <button className="primary" type="submit" disabled={!workspace?.jobs.length || busy || uploading}>
+            <button className="primary" type="submit" disabled={!workspace || busy || uploading}
+              formNoValidate={workspace?.jobs.length === 0}>
               <Icon name="compare" size={18} />Compare resume
             </button>
             <Status notice={notice} />
@@ -540,7 +548,10 @@ function Workspace({ username, onLogout, signingOut }) {
           <Results data={data} revision={revision} resultRef={resultRef} />
         </section>
       </div>
-      {page === 'jobs' && <AddJobPage jobs={workspace?.jobs ?? []} onJobSaved={refreshWorkspace} />}
+      {page === 'jobs' && <AddJobPage jobs={workspace?.jobs ?? []} onJobSaved={async () => {
+        await refreshWorkspace();
+        if (workspace?.jobs.length === 0) setNotice(null);
+      }} />}
       {page === 'history' && <MatchHistoryPage revision={revision} />}
     </main>
   </>;

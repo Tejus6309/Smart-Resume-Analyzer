@@ -89,6 +89,11 @@ try {
   check('Registration works', (await api('/register', credentials)).data.username === 'tester');
   check('Duplicate registration rejected', (await api('/register', credentials)).status === 400);
   check('Empty workspace', (await api('/workspace')).data.jobs.length === 0);
+  const noJob = await api('/match', { name: 'Sample Candidate', resume: 'Java', save: 'yes' });
+  check('Comparison without jobs explains how to proceed', noJob.status === 400
+    && noJob.text === 'Add a job before comparing your resume.');
+  check('Blocked comparison creates no resume or history', (await api('/workspace')).data.resumes.length === 0
+    && (await api('/history')).data.length === 0);
   check('Empty job rejected', (await api('/jobs', { title: '', company: 'Demo', description: 'Java' })).status === 400);
   for (const [title, description] of [['Java Developer', 'Java SQL Git'], ['Web Developer', 'React JavaScript'], ['Unlisted skills', 'astronomy']]) {
     assert.equal((await api('/jobs', { title, company: 'Demo Company', description })).status, 200);
@@ -100,6 +105,11 @@ try {
   check('Missing skills', result.matches[0].missing.join(',') === 'SQL');
   check('Rank and Java word boundaries', result.matches[1].score === '0.00%');
   check('No recognized skills gives N/A last', result.matches[2].score === 'N/A');
+  check('Suggestions cover partial, low and unavailable scores', result.matches[0].recommendation.startsWith('Consider applying')
+    && result.matches[1].recommendation.startsWith('Address the missing skills')
+    && result.matches[2].recommendation.startsWith('Review the job requirements manually'));
+  check('Downloadable reports include the same suggestion', result.matches.every(match =>
+    match.report.includes('Application Suggestion: ' + match.recommendation)));
   check('Resume available for reuse', (await api('/workspace')).data.resumes.length === 1);
   const reused = (await api('/match', { saved: String(result.resumeId), job: '1' })).data;
   check('Saved resume comparison', reused.matches[0].score === '66.67%');
@@ -134,8 +144,11 @@ try {
   const empty = (await api('/workspace')).data;
   check('Jobs resumes and history clear after restart', empty.jobs.length === 0 && empty.resumes.length === 0 && (await api('/history')).data.length === 0);
   await api('/jobs', { title: 'New Job', company: 'New Company', description: 'Python' });
-  await api('/match', { name: 'Another Candidate', resume: 'Python', save: 'yes', job: '1' });
+  const strong = (await api('/match', { name: 'Another Candidate', resume: 'Python', save: 'yes', job: '1' })).data.matches[0];
+  check('Strong match suggests applying', strong.score === '100.00%' && strong.recommendation.startsWith('Apply.'));
   await api('/report', { saved: '1', job: '1' });
+  check('Saved reports include the recommendation', readdirSync(join(temp, 'reports')).some(file =>
+    readFileSync(join(temp, 'reports', file), 'utf8').includes('Application Suggestion: ' + strong.recommendation)));
   check('Restart cannot mix reports for reused resume IDs', readdirSync(join(temp, 'reports')).length === 3);
   check('No database or data folder created', !existsSync(join(temp, 'data')));
   console.log('All ' + checks + ' checks passed. Test data used an isolated temporary folder.');

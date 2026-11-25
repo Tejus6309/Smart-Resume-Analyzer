@@ -520,6 +520,11 @@ function MatchCard({ match, resumeId }) {
     ] }),
     match.progress >= 0 && /* @__PURE__ */ jsx("progress", { max: 100, value: match.progress, "aria-label": "Match percentage" }),
     /* @__PURE__ */ jsx("p", { className: "calculation", children: match.progress < 0 ? "No recognizable required skills." : match.matched.length + " of " + match.requiredCount + " required skills matched" }),
+    /* @__PURE__ */ jsxs("p", { className: "calculation", children: [
+      /* @__PURE__ */ jsx("strong", { children: "Application suggestion" }),
+      " ",
+      match.recommendation
+    ] }),
     /* @__PURE__ */ jsxs("div", { className: "skill-groups", children: [
       /* @__PURE__ */ jsxs("div", { children: [
         /* @__PURE__ */ jsx("h4", { children: "Matched skills" }),
@@ -653,6 +658,10 @@ function Workspace({ username, onLogout, signingOut }) {
   async function compare(event) {
     event.preventDefault();
     if (!workspace || busy || uploading) return;
+    if (workspace.jobs.length === 0) {
+      setNotice({ message: "Add a job before comparing your resume.", error: true });
+      return;
+    }
     const form = new URLSearchParams(new FormData(event.currentTarget));
     setBusy(true);
     setNotice({ message: "Comparing skills\u2026", busy: true });
@@ -737,7 +746,10 @@ function Workspace({ username, onLogout, signingOut }) {
                 ] })
               ] })
             ] }),
-            workspace?.jobs.length === 0 && /* @__PURE__ */ jsx("p", { className: "inline-hint", children: "Add a job to run your first comparison." }),
+            workspace?.jobs.length === 0 && /* @__PURE__ */ jsxs("p", { className: "inline-hint", children: [
+              /* @__PURE__ */ jsx("a", { href: "#jobs", children: "Add a job" }),
+              " to run your first comparison."
+            ] }),
             /* @__PURE__ */ jsxs("fieldset", { hidden: Boolean(saved), disabled: Boolean(saved) || busy, children: [
               /* @__PURE__ */ jsx("label", { htmlFor: "name", children: "Candidate name" }),
               /* @__PURE__ */ jsx(
@@ -781,16 +793,28 @@ function Workspace({ username, onLogout, signingOut }) {
                 " Keep this resume for this run"
               ] })
             ] }),
-            /* @__PURE__ */ jsxs("button", { className: "primary", type: "submit", disabled: !workspace?.jobs.length || busy || uploading, children: [
-              /* @__PURE__ */ jsx(Icon, { name: "compare", size: 18 }),
-              "Compare resume"
-            ] }),
+            /* @__PURE__ */ jsxs(
+              "button",
+              {
+                className: "primary",
+                type: "submit",
+                disabled: !workspace || busy || uploading,
+                formNoValidate: workspace?.jobs.length === 0,
+                children: [
+                  /* @__PURE__ */ jsx(Icon, { name: "compare", size: 18 }),
+                  "Compare resume"
+                ]
+              }
+            ),
             /* @__PURE__ */ jsx(Status, { notice })
           ] }),
           /* @__PURE__ */ jsx(Results, { data, revision, resultRef })
         ] })
       ] }),
-      page === "jobs" && /* @__PURE__ */ jsx(AddJobPage, { jobs: workspace?.jobs ?? [], onJobSaved: refreshWorkspace }),
+      page === "jobs" && /* @__PURE__ */ jsx(AddJobPage, { jobs: workspace?.jobs ?? [], onJobSaved: async () => {
+        await refreshWorkspace();
+        if (workspace?.jobs.length === 0) setNotice(null);
+      } }),
       page === "history" && /* @__PURE__ */ jsx(MatchHistoryPage, { revision })
     ] })
   ] });

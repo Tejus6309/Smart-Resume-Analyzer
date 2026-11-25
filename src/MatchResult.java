@@ -24,6 +24,19 @@ public class MatchResult implements Reportable {
     public HashSet<String> getMissingSkills() { return new HashSet<>(missingSkills); }
     public Double getMatchPercentage() { return matchPercentage; }
 
+    public String getRecommendation() {
+        if (matchPercentage == null) {
+            return "Review the job requirements manually because no required skills were recognized.";
+        }
+        if (matchPercentage >= 80) {
+            return "Apply. Your resume matches most of the recognized required skills.";
+        }
+        if (matchPercentage >= 50) {
+            return "Consider applying if you can show relevant experience for the missing skills.";
+        }
+        return "Address the missing skills before applying.";
+    }
+
     public static String formatPercentage(Double percentage) {
         return percentage == null ? "N/A" : String.format(Locale.ROOT, "%.2f%%", percentage);
     }
@@ -38,11 +51,11 @@ public class MatchResult implements Reportable {
         return String.format(
                 "Candidate Name: %s%nJob Title: %s%nCompany: %s%n%n"
                 + "Resume Skills: %s%nRequired Skills: %s%nMatched Skills: %s%nMissing Skills: %s%n%n"
-                + "Match Score: %s%nCalculation: %s%n",
+                + "Match Score: %s%nCalculation: %s%nApplication Suggestion: %s%n",
                 resume.getCandidateName(), job.getJobTitle(), job.getCompanyName(),
                 SkillExtractor.formatSkills(resume.getSkills()),
                 SkillExtractor.formatSkills(job.getRequiredSkills()),
                 SkillExtractor.formatSkills(matchedSkills), SkillExtractor.formatSkills(missingSkills),
-                formatPercentage(matchPercentage), calculation);
+                formatPercentage(matchPercentage), calculation, getRecommendation());
     }
 }

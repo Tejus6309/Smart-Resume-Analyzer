@@ -159,7 +159,7 @@ public class WebMain {
     private String match(Map<String, String> form) {
         ArrayList<Job> jobs = store.getJobs();
         if (jobs.isEmpty()) {
-            throw new IllegalArgumentException("Add a job before running a match.");
+            throw new IllegalArgumentException("Add a job before comparing your resume.");
         }
         String jobId = form.getOrDefault("job", "");
         Job selectedJob = null;
@@ -227,6 +227,7 @@ public class WebMain {
         return Map.of("jobId", job.getJobId(), "title", job.getJobTitle(), "company", job.getCompanyName(),
                 "score", MatchResult.formatPercentage(score), "progress", score == null ? -1 : score,
                 "requiredCount", job.getRequiredSkills().size(),
+                "recommendation", result.getRecommendation(),
                 "matched", new TreeSet<>(result.getMatchedSkills()),
                 "missing", new TreeSet<>(result.getMissingSkills()), "report", result.generateSummary());
     }
