@@ -215,7 +215,7 @@ function PageHeading({ title, children, action }) {
     action
   ] });
 }
-function ResumeUpload({ loading, disabled, onLoading, onText }) {
+function DocumentUpload({ id, loading, disabled, onLoading, onText }) {
   const [notice, setNotice] = useState(null);
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef(null);
@@ -233,7 +233,7 @@ function ResumeUpload({ loading, disabled, onLoading, onText }) {
       onText(await request("/extract?" + extension, file));
       setNotice({ message: "Text extracted from " + file.name + ". Review it below." });
     } catch (error) {
-      fileInput.current.value = "";
+      if (fileInput.current) fileInput.current.value = "";
       setNotice({ message: error.message, error: true });
     } finally {
       onLoading(false);
@@ -257,26 +257,26 @@ function ResumeUpload({ loading, disabled, onLoading, onText }) {
         }
       },
       children: [
-        /* @__PURE__ */ jsxs("label", { htmlFor: "resume-file", className: "upload-target", children: [
+        /* @__PURE__ */ jsxs("label", { htmlFor: id, className: "upload-target", children: [
           /* @__PURE__ */ jsx("span", { className: "panel-icon", children: /* @__PURE__ */ jsx(Icon, { name: "upload", size: 18 }) }),
           /* @__PURE__ */ jsxs("span", { children: [
             /* @__PURE__ */ jsx("strong", { children: "Choose a file or drop it here" }),
-            /* @__PURE__ */ jsx("small", { id: "upload-hint", children: "PDF or DOCX \xB7 up to 5 MB" })
+            /* @__PURE__ */ jsx("small", { id: id + "-hint", children: "PDF or DOCX \xB7 up to 5 MB" })
           ] })
         ] }),
         /* @__PURE__ */ jsx(
           "input",
           {
-            id: "resume-file",
+            id,
             ref: fileInput,
             type: "file",
             accept: ".pdf,.docx",
             disabled: loading || disabled,
-            "aria-describedby": "upload-hint upload-status",
+            "aria-describedby": id + "-hint " + id + "-status",
             onChange: (event) => upload(event.target.files[0])
           }
         ),
-        /* @__PURE__ */ jsx(Status, { id: "upload-status", notice })
+        /* @__PURE__ */ jsx(Status, { id: id + "-status", notice })
       ]
     }
   );
@@ -284,13 +284,20 @@ function ResumeUpload({ loading, disabled, onLoading, onText }) {
 function AddJobPage({ jobs, onJobSaved }) {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [description, setDescription] = useState("");
+  const [uploadKey, setUploadKey] = useState(0);
+  const tooLong = description.length > 2e4;
   async function save(event) {
     event.preventDefault();
+    if (uploading || saving || tooLong) return;
     const form = event.currentTarget;
     setSaving(true);
     try {
       await request("/jobs", new URLSearchParams(new FormData(form)));
       form.reset();
+      setDescription("");
+      setUploadKey((key) => key + 1);
       setNotice({ message: "Job saved." });
       try {
         await onJobSaved();
@@ -318,20 +325,35 @@ function AddJobPage({ jobs, onJobSaved }) {
             /* @__PURE__ */ jsx("input", { id: "company", name: "company", maxLength: 120, placeholder: "Company name", required: true })
           ] })
         ] }),
+        /* @__PURE__ */ jsx(
+          DocumentUpload,
+          {
+            id: "job-file",
+            loading: uploading,
+            disabled: saving,
+            onLoading: setUploading,
+            onText: setDescription
+          },
+          uploadKey
+        ),
         /* @__PURE__ */ jsx("label", { htmlFor: "description", children: "Job description or required skills" }),
         /* @__PURE__ */ jsx(
           "textarea",
           {
             id: "description",
             name: "description",
+            value: description,
+            onChange: (event) => setDescription(event.target.value),
+            readOnly: saving || uploading,
             rows: 7,
             maxLength: 2e4,
             placeholder: "Paste the job description or enter the skills it requires.",
             required: true
           }
         ),
+        tooLong && /* @__PURE__ */ jsx(Status, { notice: { message: "Shorten the job description to 20,000 characters before saving.", error: true } }),
         /* @__PURE__ */ jsxs("div", { className: "job-actions", children: [
-          /* @__PURE__ */ jsxs("button", { className: "primary", type: "submit", disabled: saving, children: [
+          /* @__PURE__ */ jsxs("button", { className: "primary", type: "submit", disabled: saving || uploading || tooLong, children: [
             /* @__PURE__ */ jsx(Icon, { name: "jobs", size: 17 }),
             saving ? "Saving\u2026" : "Save job"
           ] }),
@@ -605,7 +627,7 @@ function Workspace({ username, onLogout, signingOut }) {
             /* @__PURE__ */ jsxs("fieldset", { hidden: Boolean(saved), disabled: Boolean(saved) || busy, children: [
               /* @__PURE__ */ jsx("label", { htmlFor: "name", children: "Candidate name" }),
               /* @__PURE__ */ jsx("input", { id: "name", name: "name", maxLength: 120, placeholder: "e.g. Ananya Rao", required: true }),
-              /* @__PURE__ */ jsx(ResumeUpload, { loading: uploading, disabled: Boolean(saved) || busy, onLoading: setUploading, onText: setText }),
+              /* @__PURE__ */ jsx(DocumentUpload, { id: "resume-file", loading: uploading, disabled: Boolean(saved) || busy, onLoading: setUploading, onText: setText }),
               /* @__PURE__ */ jsx("label", { htmlFor: "resume", children: "Resume text" }),
               /* @__PURE__ */ jsx(
                 "textarea",

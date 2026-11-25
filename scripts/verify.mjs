@@ -93,6 +93,11 @@ try {
   for (const format of ['pdf', 'docx']) {
     const response = await api('/extract?' + format, readFileSync(join(root, 'tests', 'fixtures', 'sample.' + format)), true);
     check(format.toUpperCase() + ' text extraction', response.status === 200 && response.text.trim().length > 0);
+    const title = format.toUpperCase() + ' imported job';
+    const description = response.text.trim() + '\nRequired skill: Python';
+    const saved = await api('/jobs', { title, company: 'Demo', description });
+    const jobs = (await api('/workspace')).data.jobs;
+    check(title + ' saved after editing', saved.status === 200 && jobs.some(job => job.title === title));
   }
   check('Invalid upload rejected', (await api('/extract?pdf', Buffer.from('not a pdf'), true)).status === 422);
   await api('/logout', {});
