@@ -138,9 +138,6 @@ try {
   await api('/report', { saved: '1', job: '1' });
   check('Restart cannot mix reports for reused resume IDs', readdirSync(join(temp, 'reports')).length === 3);
   check('No database or data folder created', !existsSync(join(temp, 'data')));
-  const consoleRun = spawnSync(java, ['-cp', cp, 'Main'], { cwd: temp, encoding: 'utf8', timeout: 15000,
-    input: '3\nConsole Job\nDemo\nJava SQL\nEND\n1\nConsole Candidate\nJava\nEND\n5\n1\n7\n8\n10\n1\n9\n' });
-  check('Console add resume job match history report and reuse', consoleRun.status === 0 && consoleRun.stdout.includes('50.00%') && consoleRun.stdout.includes(' IST |') && consoleRun.stdout.includes('Loaded resume #1'));
   console.log('All ' + checks + ' checks passed. Test data used an isolated temporary folder.');
 } finally {
   await stop();

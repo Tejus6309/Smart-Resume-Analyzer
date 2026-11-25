@@ -61,10 +61,6 @@ public class MemoryStore {
         return job == null ? null : copyJob(job);
     }
 
-    public void saveMatch(MatchResult result) {
-        saveMatches(List.of(result));
-    }
-
     public void saveMatches(List<MatchResult> results) {
         String time = ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).format(TIME);
         for (MatchResult result : results) {

@@ -28,10 +28,4 @@ public class Job {
     public void setRequiredSkills(HashSet<String> requiredSkills) {
         this.requiredSkills = new HashSet<>(requiredSkills);
     }
-
-    public void displayInformation() {
-        System.out.printf("[%d] %s | %s%n", jobId, jobTitle, companyName);
-        System.out.println("Description: " + jobDescription);
-        System.out.println("Required skills: " + SkillExtractor.formatSkills(requiredSkills));
-    }
 }

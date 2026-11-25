@@ -21,10 +21,4 @@ public class Resume {
     public void setResumeText(String resumeText) { this.resumeText = resumeText; }
     public HashSet<String> getSkills() { return new HashSet<>(skills); }
     public void setSkills(HashSet<String> skills) { this.skills = new HashSet<>(skills); }
-
-    public void displayDetails() {
-        System.out.printf("Resume #%d | %s%n", resumeId, candidateName);
-        System.out.println("Resume text: " + resumeText);
-        System.out.println("Extracted skills: " + SkillExtractor.formatSkills(skills));
-    }
 }

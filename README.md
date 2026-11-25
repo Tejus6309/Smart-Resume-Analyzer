@@ -1,6 +1,6 @@
 # Smart Resume Analyzer
 
-Smart Resume Analyzer compares a resume with one or more job descriptions and shows which required skills match and which are missing. It runs locally as a React web app with a Java backend and also includes a Java console interface.
+Smart Resume Analyzer compares a resume with one or more job descriptions and shows which required skills match and which are missing. It runs locally as a React web app with a Java backend.
 
 ## Features
 
@@ -14,7 +14,7 @@ Smart Resume Analyzer compares a resume with one or more job descriptions and sh
 | Component | Responsibility |
 | --- | --- |
 | React frontend (`web/`) | Provides the resume upload, job entry, comparison, and history screens. esbuild bundles the frontend. |
-| Java entry points (`src/WebMain.java`, `src/Main.java`) | `WebMain` uses the JDK HTTP server to serve the frontend and handle API requests. `Main` runs the console interface. |
+| Java entry point (`src/WebMain.java`) | `WebMain` uses the JDK HTTP server to serve the frontend and handle API requests. |
 | Analysis (`ResumeFileReader`, `SkillExtractor`, `Matcher`) | Extracts PDF text with Apache PDFBox and reads DOCX text from its Word XML. Finds skills using a predefined keyword list, then scores and ranks matches. |
 | Data and reports (`LoginService`, `MemoryStore`, `ReportManager`) | Handles web sign-in and stores accounts, sessions, resumes, jobs, and history in memory. Restarting clears this data. Exported reports remain on disk. |
 
