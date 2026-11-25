@@ -6,6 +6,7 @@ import { join, delimiter } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
+import { detectCandidateName, detectJobDetails } from '../web/src/document-details.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const java = process.env.JAVA_HOME ? join(process.env.JAVA_HOME, 'bin', 'java.exe') : 'java';
@@ -42,6 +43,27 @@ async function stop() {
   }
 }
 try {
+  assert.deepEqual(detectJobDetails('JOB DESCRIPTION\n\nFrontend Developer\nHarbor Dispatch / Product engineering / Full-time, remote\nThe role\nBuild tools.'), {
+    title: 'Frontend Developer',
+    company: 'Harbor Dispatch',
+  });
+  assert.deepEqual(detectJobDetails('Position: Product Owner\r\nEmployer: Example & Co.'), {
+    title: 'Product Owner',
+    company: 'Example & Co.',
+  });
+  assert.deepEqual(detectJobDetails('Data Analyst at Acme\nResponsibilities\nAnalyze data.'), {
+    title: 'Data Analyst',
+    company: 'Acme',
+  });
+  assert.deepEqual(detectJobDetails('Frontend Developer\nRemote\nRequired skills\nJavaScript'), {
+    title: 'Frontend Developer',
+    company: '',
+  });
+  assert.equal(detectCandidateName('RESUME\n\nRen\nFrontend Developer / Pune / ren@example.com\nProfile'), 'Ren');
+  assert.equal(detectCandidateName('Candidate name: �lodie O'Neil\nSkills\nReact'), '�lodie O'Neil');
+  assert.equal(detectCandidateName('Frontend Developer\ncontact@example.com\nExperience\nAnother Person'), '');
+  check('Upload details use document headers and keep uncertain fields empty', true);
+
   const compilation = spawnSync(javac, ['--release', '17', '-encoding', 'UTF-8',
     '-cp', join(root, 'lib', '*'), '-d', classes,
     ...readdirSync(join(root, 'src')).filter(n => n.endsWith('.java')).map(n => join(root, 'src', n))],

@@ -1,6 +1,79 @@
 // web/src/main.jsx
 import { useEffect, useRef, useState } from "./react-runtime.js";
 import { createRoot } from "./react-runtime.js";
+
+// web/src/document-details.mjs
+var jobSection = /^(?:about (?:us|the company|the job|the role)|the role|overview|job summary|(?:key )?responsibilities|(?:required |preferred )?(?:skills|qualifications|requirements)|what (?:you.ll do|we offer)|benefits)\b/i;
+var resumeSection = /^(?:about me|profile|(?:professional |career )?summary|(?:work |professional )?experience|employment|education|skills|objective|projects|certifications)\b/i;
+var roleEnding = /\b(?:developer|engineer|analyst|designer|manager|director|specialist|coordinator|associate|consultant|assistant|architect|administrator|technician|intern|lead|officer|scientist|accountant|recruiter|writer|teacher|nurse|representative|product owner|scrum master)(?:\s+(?:[IVX]{1,3}|\d+|\([^()]{1,35}\)))?$/i;
+var companyEnding = /\b(?:inc|corp|corporation|company|co|llc|llp|ltd|limited|pvt|plc|group|technologies|solutions|software|systems|labs|studio|studios)\.?$/i;
+var jobMetadata = /\b(?:remote|hybrid|on[- ]site|part[- ]time|full[- ]time|contract(?:or)?|permanent|engineering|department|product team)\b/i;
+var contact = /[\w.+-]+@[\w.-]+\.\p{L}{2,}|https?:\/\/|(?:linkedin|github)\.com|(?:\+?\d[\d ().-]{7,}\d)/iu;
+function openingLines(text, heading, section) {
+  const lines = [];
+  for (const rawLine of text.split(/\r\n?|\n/)) {
+    const line = rawLine.trim().replace(/\s+/g, " ");
+    if (!line || heading.test(line)) continue;
+    if (section.test(line) || lines.length === 8) break;
+    lines.push(line);
+  }
+  return lines;
+}
+function labeledValue(lines, label) {
+  for (const line of lines) {
+    const value = line.match(label)?.[1].trim();
+    if (value && value.length <= 120 && /\p{L}/u.test(value)) return value;
+  }
+  return "";
+}
+function looksLikeRole(value) {
+  return value.length <= 120 && value.split(" ").length <= 10 && /^[\p{L}\p{N}][\p{L}\p{M}\p{N} .&+/#()'-]*$/u.test(value) && roleEnding.test(value);
+}
+function looksLikeCompany(value) {
+  return value.length <= 120 && value.split(" ").length <= 8 && /^\p{L}[\p{L}\p{M}\p{N} .&+''()-]*$/u.test(value) && !looksLikeRole(value) && !jobMetadata.test(value) && !jobSection.test(value);
+}
+function detectJobDetails(text) {
+  const lines = openingLines(text, /^(?:job description|job posting|job opening|vacancy)\s*:?$/i, jobSection);
+  let title = labeledValue(lines, /^(?:job title|position(?: title)?|role|title)\s*:\s*(.+)$/i);
+  let company = labeledValue(lines, /^(?:company(?: name)?|employer|organi[sz]ation(?: name)?)\s*:\s*(.+)$/i);
+  for (const [index, line] of lines.slice(0, 4).entries()) {
+    const atCompany = line.match(/^(.+?)\s+at\s+(.+)$/i);
+    const [role, employer, ...inlineMetadata] = line.split(/\s+[\/|�---]\s+/);
+    const roleValue = atCompany?.[1] ?? role;
+    if (!looksLikeRole(roleValue)) continue;
+    title ||= roleValue;
+    const nextLine = lines[index + 1] || "";
+    const previousLine = lines[index - 1] || "";
+    const [nextEmployer, ...metadata] = nextLine.split(/\s+[\/|�---]\s+/);
+    const inlineCompany = atCompany?.[2].split(/\s+[\/|�---]\s+/)[0] ?? employer;
+    if (!company && inlineCompany && looksLikeCompany(inlineCompany) && (atCompany || companyEnding.test(inlineCompany) || inlineMetadata.some((part) => jobMetadata.test(part)))) {
+      company = inlineCompany;
+    } else if (!company && looksLikeCompany(nextEmployer) && (companyEnding.test(nextEmployer) || metadata.some((part) => jobMetadata.test(part)))) {
+      company = nextEmployer;
+    } else if (!company && looksLikeCompany(previousLine) && companyEnding.test(previousLine)) {
+      company = previousLine;
+    }
+    break;
+  }
+  return { title, company };
+}
+function looksLikeName(value) {
+  return value.length <= 120 && value.split(" ").length <= 6 && /^\p{L}[\p{L}\p{M}''.-]*(?: \p{L}[\p{L}\p{M}''.-]*)*$/u.test(value) && !resumeSection.test(value) && !looksLikeRole(value) && !companyEnding.test(value);
+}
+function detectCandidateName(text) {
+  const lines = openingLines(text, /^(?:r[e�]sum[e�]|cv|curriculum vitae)\s*:?$/i, resumeSection);
+  const labeled = labeledValue(lines, /^(?:(?:candidate|full|applicant) )?name\s*:\s*(.+)$/i);
+  if (labeled && looksLikeName(labeled)) return labeled;
+  const [first = "", ...following] = lines;
+  const [name, ...inlineDetails] = first.split(/\s+[\/|�]\s+/);
+  const hasContact = [...inlineDetails, ...following.slice(0, 3)].some((line) => contact.test(line));
+  if (looksLikeName(name) && (hasContact || !inlineDetails.length && looksLikeRole(following[0] || ""))) {
+    return name;
+  }
+  return "";
+}
+
+// web/src/main.jsx
 import { Fragment, jsx, jsxs } from "./react-runtime.js";
 async function request(path, body) {
   const options = body === void 0 ? {} : {
@@ -231,7 +304,7 @@ function DocumentUpload({ id, loading, disabled, onLoading, onText }) {
     setNotice({ message: "Reading " + file.name + "\u2026", busy: true });
     try {
       onText(await request("/extract?" + extension, file));
-      setNotice({ message: "Text extracted from " + file.name + ". Review it below." });
+      setNotice({ message: "Imported " + file.name + ". Review the fields before continuing." });
     } catch (error) {
       if (fileInput.current) fileInput.current.value = "";
       setNotice({ message: error.message, error: true });
@@ -286,8 +359,18 @@ function AddJobPage({ jobs, onJobSaved }) {
   const [notice, setNotice] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [description, setDescription] = useState("");
+  const [jobDetails, setJobDetails] = useState({});
+  const [jobEdits, setJobEdits] = useState({});
   const [uploadKey, setUploadKey] = useState(0);
   const tooLong = description.length > 2e4;
+  function importJob(text) {
+    setDescription(text);
+    setJobDetails(detectJobDetails(text));
+    setJobEdits(({ title, company }) => ({
+      title: title?.trim() ? title : void 0,
+      company: company?.trim() ? company : void 0
+    }));
+  }
   async function save(event) {
     event.preventDefault();
     if (uploading || saving || tooLong) return;
@@ -297,6 +380,8 @@ function AddJobPage({ jobs, onJobSaved }) {
       await request("/jobs", new URLSearchParams(new FormData(form)));
       form.reset();
       setDescription("");
+      setJobDetails({});
+      setJobEdits({});
       setUploadKey((key) => key + 1);
       setNotice({ message: "Job saved." });
       try {
@@ -318,11 +403,33 @@ function AddJobPage({ jobs, onJobSaved }) {
         /* @__PURE__ */ jsxs("div", { className: "job-fields", children: [
           /* @__PURE__ */ jsxs("div", { children: [
             /* @__PURE__ */ jsx("label", { htmlFor: "job-title", children: "Job title" }),
-            /* @__PURE__ */ jsx("input", { id: "job-title", name: "title", maxLength: 120, placeholder: "e.g. Frontend Developer", required: true })
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                id: "job-title",
+                name: "title",
+                maxLength: 120,
+                placeholder: "e.g. Frontend Developer",
+                required: true,
+                value: jobEdits.title ?? jobDetails.title ?? "",
+                onChange: (event) => setJobEdits({ ...jobEdits, title: event.target.value })
+              }
+            )
           ] }),
           /* @__PURE__ */ jsxs("div", { children: [
             /* @__PURE__ */ jsx("label", { htmlFor: "company", children: "Company" }),
-            /* @__PURE__ */ jsx("input", { id: "company", name: "company", maxLength: 120, placeholder: "Company name", required: true })
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                id: "company",
+                name: "company",
+                maxLength: 120,
+                placeholder: "Company name",
+                required: true,
+                value: jobEdits.company ?? jobDetails.company ?? "",
+                onChange: (event) => setJobEdits({ ...jobEdits, company: event.target.value })
+              }
+            )
           ] })
         ] }),
         /* @__PURE__ */ jsx(
@@ -332,7 +439,7 @@ function AddJobPage({ jobs, onJobSaved }) {
             loading: uploading,
             disabled: saving,
             onLoading: setUploading,
-            onText: setDescription
+            onText: importJob
           },
           uploadKey
         ),
@@ -506,6 +613,8 @@ function Workspace({ username, onLogout, signingOut }) {
   const [saved, setSaved] = useState("");
   const [job, setJob] = useState("");
   const [text, setText] = useState("");
+  const [detectedName, setDetectedName] = useState("");
+  const [nameEdit, setNameEdit] = useState(null);
   const [saveResume, setSaveResume] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -514,6 +623,11 @@ function Workspace({ username, onLogout, signingOut }) {
   const [revision, setRevision] = useState(0);
   const [page, setPage] = useState(currentPage);
   const resultRef = useRef(null);
+  function importResume(resumeText) {
+    setText(resumeText);
+    setDetectedName(detectCandidateName(resumeText));
+    setNameEdit((name) => name?.trim() ? name : null);
+  }
   async function refreshWorkspace() {
     const next = await request("/workspace");
     setWorkspace(next);
@@ -626,8 +740,19 @@ function Workspace({ username, onLogout, signingOut }) {
             workspace?.jobs.length === 0 && /* @__PURE__ */ jsx("p", { className: "inline-hint", children: "Add a job to run your first comparison." }),
             /* @__PURE__ */ jsxs("fieldset", { hidden: Boolean(saved), disabled: Boolean(saved) || busy, children: [
               /* @__PURE__ */ jsx("label", { htmlFor: "name", children: "Candidate name" }),
-              /* @__PURE__ */ jsx("input", { id: "name", name: "name", maxLength: 120, placeholder: "e.g. Ananya Rao", required: true }),
-              /* @__PURE__ */ jsx(DocumentUpload, { id: "resume-file", loading: uploading, disabled: Boolean(saved) || busy, onLoading: setUploading, onText: setText }),
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  id: "name",
+                  name: "name",
+                  maxLength: 120,
+                  placeholder: "e.g. Ananya Rao",
+                  required: true,
+                  value: nameEdit ?? detectedName,
+                  onChange: (event) => setNameEdit(event.target.value)
+                }
+              ),
+              /* @__PURE__ */ jsx(DocumentUpload, { id: "resume-file", loading: uploading, disabled: Boolean(saved) || busy, onLoading: setUploading, onText: importResume }),
               /* @__PURE__ */ jsx("label", { htmlFor: "resume", children: "Resume text" }),
               /* @__PURE__ */ jsx(
                 "textarea",
