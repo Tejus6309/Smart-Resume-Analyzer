@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { detectCandidateName, detectJobDetails } from './document-details.mjs';
 
 async function request(path, body) {
   const options = body === undefined ? {} : {
@@ -182,7 +183,7 @@ function DocumentUpload({ id, loading, disabled, onLoading, onText }) {
     setNotice({ message: 'Reading ' + file.name + '…', busy: true });
     try {
       onText(await request('/extract?' + extension, file));
-      setNotice({ message: 'Text extracted from ' + file.name + '. Review it below.' });
+      setNotice({ message: 'Imported ' + file.name + '. Review the fields before continuing.' });
     } catch (error) {
       if (fileInput.current) fileInput.current.value = '';
       setNotice({ message: error.message, error: true });
@@ -218,8 +219,19 @@ function AddJobPage({ jobs, onJobSaved }) {
 
   const [uploading, setUploading] = useState(false);
   const [description, setDescription] = useState('');
+  const [jobDetails, setJobDetails] = useState({});
+  const [jobEdits, setJobEdits] = useState({});
   const [uploadKey, setUploadKey] = useState(0);
   const tooLong = description.length > 20000;
+
+  function importJob(text) {
+    setDescription(text);
+    setJobDetails(detectJobDetails(text));
+    setJobEdits(({ title, company }) => ({
+      title: title?.trim() ? title : undefined,
+      company: company?.trim() ? company : undefined,
+    }));
+  }
 
   async function save(event) {
     event.preventDefault();
@@ -230,6 +242,8 @@ function AddJobPage({ jobs, onJobSaved }) {
       await request('/jobs', new URLSearchParams(new FormData(form)));
       form.reset();
       setDescription('');
+      setJobDetails({});
+      setJobEdits({});
       setUploadKey(key => key + 1);
       setNotice({ message: 'Job saved.' });
       try {
@@ -252,15 +266,19 @@ function AddJobPage({ jobs, onJobSaved }) {
         <div className="job-fields">
           <div>
             <label htmlFor="job-title">Job title</label>
-            <input id="job-title" name="title" maxLength={120} placeholder="e.g. Frontend Developer" required />
+            <input id="job-title" name="title" maxLength={120} placeholder="e.g. Frontend Developer" required
+              value={jobEdits.title ?? jobDetails.title ?? ''}
+              onChange={event => setJobEdits({ ...jobEdits, title: event.target.value })} />
           </div>
           <div>
             <label htmlFor="company">Company</label>
-            <input id="company" name="company" maxLength={120} placeholder="Company name" required />
+            <input id="company" name="company" maxLength={120} placeholder="Company name" required
+              value={jobEdits.company ?? jobDetails.company ?? ''}
+              onChange={event => setJobEdits({ ...jobEdits, company: event.target.value })} />
           </div>
         </div>
         <DocumentUpload id="job-file" key={uploadKey} loading={uploading} disabled={saving}
-          onLoading={setUploading} onText={setDescription} />
+          onLoading={setUploading} onText={importJob} />
         <label htmlFor="description">Job description or required skills</label>
         <textarea id="description" name="description" value={description} onChange={event => setDescription(event.target.value)}
           readOnly={saving || uploading} rows={7} maxLength={20000}
@@ -396,6 +414,8 @@ function Workspace({ username, onLogout, signingOut }) {
   const [saved, setSaved] = useState('');
   const [job, setJob] = useState('');
   const [text, setText] = useState('');
+  const [detectedName, setDetectedName] = useState('');
+  const [nameEdit, setNameEdit] = useState(null);
   const [saveResume, setSaveResume] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -404,6 +424,12 @@ function Workspace({ username, onLogout, signingOut }) {
   const [revision, setRevision] = useState(0);
   const [page, setPage] = useState(currentPage);
   const resultRef = useRef(null);
+
+  function importResume(resumeText) {
+    setText(resumeText);
+    setDetectedName(detectCandidateName(resumeText));
+    setNameEdit(name => name?.trim() ? name : null);
+  }
 
   async function refreshWorkspace() {
     const next = await request('/workspace');
@@ -494,8 +520,9 @@ function Workspace({ username, onLogout, signingOut }) {
             {workspace?.jobs.length === 0 && <p className="inline-hint">Add a job to run your first comparison.</p>}
             <fieldset hidden={Boolean(saved)} disabled={Boolean(saved) || busy}>
               <label htmlFor="name">Candidate name</label>
-              <input id="name" name="name" maxLength={120} placeholder="e.g. Ananya Rao" required />
-              <DocumentUpload id="resume-file" loading={uploading} disabled={Boolean(saved) || busy} onLoading={setUploading} onText={setText} />
+              <input id="name" name="name" maxLength={120} placeholder="e.g. Ananya Rao" required
+                value={nameEdit ?? detectedName} onChange={event => setNameEdit(event.target.value)} />
+              <DocumentUpload id="resume-file" loading={uploading} disabled={Boolean(saved) || busy} onLoading={setUploading} onText={importResume} />
               <label htmlFor="resume">Resume text</label>
               <textarea id="resume" name="resume" rows={3} maxLength={100000}
                 placeholder="Extracted text appears here. You can also paste it directly."
