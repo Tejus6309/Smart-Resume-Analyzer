@@ -165,7 +165,7 @@ function PageHeading({ title, children, action }) {
   </header>;
 }
 
-function ResumeUpload({ loading, disabled, onLoading, onText }) {
+function DocumentUpload({ id, loading, disabled, onLoading, onText }) {
   const [notice, setNotice] = useState(null);
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef(null);
@@ -184,7 +184,7 @@ function ResumeUpload({ loading, disabled, onLoading, onText }) {
       onText(await request('/extract?' + extension, file));
       setNotice({ message: 'Text extracted from ' + file.name + '. Review it below.' });
     } catch (error) {
-      fileInput.current.value = '';
+      if (fileInput.current) fileInput.current.value = '';
       setNotice({ message: error.message, error: true });
     } finally {
       onLoading(false);
@@ -202,13 +202,13 @@ function ResumeUpload({ loading, disabled, onLoading, onText }) {
         upload(event.dataTransfer.files[0]);
       }
     }}>
-    <label htmlFor="resume-file" className="upload-target">
+    <label htmlFor={id} className="upload-target">
       <span className="panel-icon"><Icon name="upload" size={18} /></span>
-      <span><strong>Choose a file or drop it here</strong><small id="upload-hint">PDF or DOCX · up to 5 MB</small></span>
+      <span><strong>Choose a file or drop it here</strong><small id={id + '-hint'}>PDF or DOCX · up to 5 MB</small></span>
     </label>
-    <input id="resume-file" ref={fileInput} type="file" accept=".pdf,.docx" disabled={loading || disabled}
-      aria-describedby="upload-hint upload-status" onChange={event => upload(event.target.files[0])} />
-    <Status id="upload-status" notice={notice} />
+    <input id={id} ref={fileInput} type="file" accept=".pdf,.docx" disabled={loading || disabled}
+      aria-describedby={id + '-hint ' + id + '-status'} onChange={event => upload(event.target.files[0])} />
+    <Status id={id + '-status'} notice={notice} />
   </div>;
 }
 
@@ -216,13 +216,21 @@ function AddJobPage({ jobs, onJobSaved }) {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
 
+  const [uploading, setUploading] = useState(false);
+  const [description, setDescription] = useState('');
+  const [uploadKey, setUploadKey] = useState(0);
+  const tooLong = description.length > 20000;
+
   async function save(event) {
     event.preventDefault();
+    if (uploading || saving || tooLong) return;
     const form = event.currentTarget;
     setSaving(true);
     try {
       await request('/jobs', new URLSearchParams(new FormData(form)));
       form.reset();
+      setDescription('');
+      setUploadKey(key => key + 1);
       setNotice({ message: 'Job saved.' });
       try {
         await onJobSaved();
@@ -251,11 +259,15 @@ function AddJobPage({ jobs, onJobSaved }) {
             <input id="company" name="company" maxLength={120} placeholder="Company name" required />
           </div>
         </div>
+        <DocumentUpload id="job-file" key={uploadKey} loading={uploading} disabled={saving}
+          onLoading={setUploading} onText={setDescription} />
         <label htmlFor="description">Job description or required skills</label>
-        <textarea id="description" name="description" rows={7} maxLength={20000}
+        <textarea id="description" name="description" value={description} onChange={event => setDescription(event.target.value)}
+          readOnly={saving || uploading} rows={7} maxLength={20000}
           placeholder="Paste the job description or enter the skills it requires." required />
+        {tooLong && <Status notice={{ message: 'Shorten the job description to 20,000 characters before saving.', error: true }} />}
         <div className="job-actions">
-          <button className="primary" type="submit" disabled={saving}><Icon name="jobs" size={17} />{saving ? 'Saving…' : 'Save job'}</button>
+          <button className="primary" type="submit" disabled={saving || uploading || tooLong}><Icon name="jobs" size={17} />{saving ? 'Saving…' : 'Save job'}</button>
           <a className="page-link" href="#workspace">Back to workspace</a>
         </div>
         <Status notice={notice} />
@@ -483,7 +495,7 @@ function Workspace({ username, onLogout, signingOut }) {
             <fieldset hidden={Boolean(saved)} disabled={Boolean(saved) || busy}>
               <label htmlFor="name">Candidate name</label>
               <input id="name" name="name" maxLength={120} placeholder="e.g. Ananya Rao" required />
-              <ResumeUpload loading={uploading} disabled={Boolean(saved) || busy} onLoading={setUploading} onText={setText} />
+              <DocumentUpload id="resume-file" loading={uploading} disabled={Boolean(saved) || busy} onLoading={setUploading} onText={setText} />
               <label htmlFor="resume">Resume text</label>
               <textarea id="resume" name="resume" rows={3} maxLength={100000}
                 placeholder="Extracted text appears here. You can also paste it directly."
