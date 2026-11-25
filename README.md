@@ -6,7 +6,8 @@ Smart Resume Analyzer compares a resume with one or more job descriptions and sh
 
 - Paste resume text or import a text-based PDF or DOCX file in the web app.
 - Add job descriptions or required skills, save resumes for reuse, and compare against one job or rank all saved jobs.
-- See matched and missing skills, a match percentage, and a timestamped match history. The score is `matched skills ÷ recognized required skills × 100`, or `N/A` when no required skills are recognized.
+- See matched and missing skills, a match percentage, and a timestamped match history.
+- The score is `matched skills ÷ recognized required skills × 100`, or `N/A` when no required skills are recognized.
 - Register and sign in to the local web workspace, then download a `.txt` report or save it to `reports/`.
 
 ## Architecture
