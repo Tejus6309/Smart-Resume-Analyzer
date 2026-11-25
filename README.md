@@ -1,6 +1,6 @@
 # Smart Resume Analyzer
 
-Smart Resume Analyzer compares a resume with one or more job descriptions and shows which required skills match and which are missing. It runs locally as a React web app with a Java backend.
+Smart Resume Analyzer compares a resume with one or more job descriptions and shows which required skills match and which are missing.
 
 ## Features
 
