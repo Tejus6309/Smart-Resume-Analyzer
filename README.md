@@ -29,6 +29,15 @@ A full-stack Java and React application that extracts skills from resumes (PDF, 
 | **File Processing** | Apache PDFBox (PDF), Java ZIP/XML utilities (DOCX) |
 | **Storage** | In-memory Java Collections (`HashMap`, `ArrayList`, `HashSet`), local file export (`reports/`) |
 
+## Skill Matching Formula
+
+$$\text{Match Score (\%)} = \left( \frac{\text{Matched Required Skills}}{\text{Total Required Skills}} \right) \times 100$$
+
+**Example:**
+* **Resume Skills:** `Java, SQL, Git, Python`
+* **Job Requirements:** `Java, SQL, Git, JDBC, OOP`
+* **Matched:** `Java, SQL, Git` (3) | **Missing:** `JDBC, OOP` (2) | **Score:** `60%`
+
 ## Run locally
 
 Requires **JDK 17 or later** and **Node.js 18 or later** with npm.
