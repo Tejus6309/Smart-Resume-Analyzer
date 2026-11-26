@@ -20,6 +20,15 @@ A full-stack Java and React application that extracts skills from resumes (PDF, 
 | Analysis (`ResumeFileReader`, `SkillExtractor`, `Matcher`) | Extracts PDF text with Apache PDFBox and reads DOCX text from its Word XML. Finds skills using a predefined keyword list, then scores and ranks matches. |
 | Data and reports (`LoginService`, `MemoryStore`, `ReportManager`) | Handles web sign-in and stores accounts, sessions, resumes, jobs, and history in memory. Restarting clears this data. Exported reports remain on disk. |
 
+## Tech Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React, HTML/CSS, esbuild, Node.js, npm |
+| **Backend** | Java (JDK 17 or 21), Java HTTP Server |
+| **File Processing** | Apache PDFBox (PDF), Java ZIP/XML utilities (DOCX) |
+| **Storage** | In-memory Java Collections (`HashMap`, `ArrayList`, `HashSet`), local file export (`reports/`) |
+
 ## Run locally
 
 Requires **JDK 17 or later** and **Node.js 18 or later** with npm.
