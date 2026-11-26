@@ -11,6 +11,7 @@ public class Resume {
         this.candidateName = candidateName;
         this.resumeText = resumeText;
         this.skills = new HashSet<>(skills);
+        
     }
 
     public int getResumeId() { return resumeId; }
